@@ -36,7 +36,7 @@ def main(args, loglevel):
         while ("from gatekeeper.hpc.arizona.edu") not in buff:
             resp = chan.recv(9999)
             buff += resp
-            time.sleep(1)
+            time.sleep(.001)
 
         print buff
 
