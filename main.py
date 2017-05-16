@@ -76,28 +76,13 @@ if __name__ == '__main__':
         type=str)
 
     required.add_argument(
-        "-N",
-        "--name",
-        help="Specify a name for the job",
+        "-s",
+        "--script",
+        help="Script that will be remotely executed",
         nargs="?",
         required=True,
         type=str)
-    
-    required.add_argument(
-        "-G",
-        "--group",
-        help="Specify the group to be charged for time",
-        nargs="?",
-        required=True,
-        type=str)
-    
-    required.add_argument(
-        "-w",
-        "--cput",
-        help="Specify cputime in hh:mm:ss or hhh:mm:ss, If your job runs longer than your specified time, it will be terminated",
-        nargs="?",
-        required=True,
-        type=str)
+
 
     optional = parser.add_argument_group('optional arguments')
 
@@ -121,74 +106,6 @@ if __name__ == '__main__':
         nargs="?",
         default="hpc.arizona.edu",
         type=str)
-
-    optional.add_argument(
-        "-n",
-        "--select",
-        help="Number of nodes",
-        nargs="?",
-        default="1",
-        type=str)
-
-    optional.add_argument(
-        "-c",
-        "--ncpus",
-        help="Number of processor cores across all nodes",
-        nargs="?",
-        default="1",
-        type=str)
-
-    optional.add_argument(
-        "-m",
-        "--mem",
-        help="Memory per node, should be in format '6gb'",
-        nargs="?",
-        default="1gb",
-        type=str)
-    
-    optional.add_argument(
-        "-M",
-        "--pcmem",
-        help="Per core memory, should be in format '6gb'",
-        nargs="?",
-        default="6gb",
-        type=str)
-
-    optional.add_argument(
-        "-q",
-        "--queue",
-        help="Queue to use",
-        nargs="?",
-        default="Standard",
-        type=str)
-    
-
-    optional.add_argument(
-        "-W",
-        "--walltime",
-        help="Walltime calculates to [cputime x nodes x cores ], Do you want something more? [ hh:mm:ss]",
-        nargs="?",
-        default="",
-        type=str)
-
-    optional.add_argument(
-        "-s",
-        "--shared",
-        help="Does your job use less than a whole node? Y = pack:shared N = free",
-        action="store_true")
-
-    optional.add_argument(
-        "-o",
-        "--output",
-        help="Do you want output and errors in the same file?",
-        action="store_true")
-
-
-    optional.add_argument(
-        "-j",
-        "--uses_java",
-        help="Is your application Java based?",
-        action="store_true")
 
     args = parser.parse_args()
 
