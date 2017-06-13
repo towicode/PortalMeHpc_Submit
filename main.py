@@ -6,48 +6,38 @@ import argparse
 import logging
 
 import sys
-import paramiko
+import pexpect
 import time
 
 # Gather our code in a main() function
 
 
-def main(args, loglevel):
-    logging.basicConfig(format="%(levelname)s: %(message)s", level=loglevel)
+def submit_uofa(args):
+    child = pexpect.spawn("ssh -i" +str(args.pkey)+ " " + str(args.user) +
+                              "@" + str(args.hostname) + "")
 
-    print "Hello there."
-    k = paramiko.RSAKey.from_private_key_file(args.pkey)
-    hostname = args.hostname
-    username = args.user
-    port = 22
-    try:
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    index = child.expect(['Are you sure you want to continue connecting*',
+                          pexpect.EOF, pexpect.TIMEOUT], timeout=5)
+    if index == 0:
+        child.sendline("yes")
 
-        client.connect(hostname, port=port, username=username, pkey=k)
-
-        chan = client.invoke_shell()
-
-        buff = ""
-        resp = chan.recv(9999)
-        buff += resp
-        chan.send("ocelote\n")
-
-        while ("from gatekeeper.hpc.arizona.edu") not in buff:
-            resp = chan.recv(9999)
-            buff += resp
-            time.sleep(.001)
-
-        print buff
-
-        pub_file = "test test test"
-        chan.send("echo \"" + pub_file + "\" > mypubfile.pub\n")
+    child.expect("Shortcut commands to access*")
+    child.sendline(args.resource)
+    child.expect("from gatekeeper.hpc.arizona.edu*")
+    #   Create script file from input file.
+    with open(args.script, 'r') as myfile:
+        data = myfile.read()
+        child.sendline("echo \"" + data + "\" > mysubmit.file")
         time.sleep(1)
 
         # submit file to queue here.
+        child.sendline(args.submit + " mysubmit.file")
 
-    finally:
-        client.close()
+
+def main(args, loglevel):
+    logging.basicConfig(format="%(levelname)s: %(message)s", level=loglevel)
+    submit_uofa(args)
+
 
 
 # Standard boilerplate to call the main() function to begin
@@ -83,6 +73,13 @@ if __name__ == '__main__':
         required=True,
         type=str)
 
+    required.add_argument(
+        "-S",
+        "--submit",
+        help="command to submit, ex qsub.",
+        nargs="?",
+        required=True,
+        type=str)
 
     optional = parser.add_argument_group('optional arguments')
 
@@ -91,7 +88,7 @@ if __name__ == '__main__':
         "--verbose",
         help="increase output verbosity",
         action="store_true")
-   
+
     optional.add_argument(
         "-p",
         "--port",
@@ -99,6 +96,7 @@ if __name__ == '__main__':
         nargs="?",
         default="22",
         type=str)
+
     optional.add_argument(
         "-H",
         "--hostname",
@@ -106,6 +104,23 @@ if __name__ == '__main__':
         nargs="?",
         default="hpc.arizona.edu",
         type=str)
+
+    optional.add_argument(
+        "-r",
+        "--resource",
+        help="Which resource would you like to execute on (UofA only, default: ocelote)",
+        nargs="?",
+        default="ocelote",
+        type=str)
+     
+    optional.add_argument(
+        "-G",
+        "--gatekeepers",
+        help="Useful for HPC with gatekeepers, see docs for more info",
+        nargs="?",
+        default="",
+        type=str)
+    
 
     args = parser.parse_args()
 
