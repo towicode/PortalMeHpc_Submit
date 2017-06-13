@@ -6,6 +6,6 @@ RUN apk add --update python python-dev
 RUN apk add --update openssh
 RUN apk add --update py-pip
 
-RUN pip install paramiko
+RUN pip install pexpect
 
 ADD main.py ./main.py
