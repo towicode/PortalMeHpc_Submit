@@ -9,10 +9,14 @@ import sys
 import pexpect
 import time
 
+import os
+
 # Gather our code in a main() function
 
 
 def submit_uofa(args):
+
+    os.chmod(str(args.pkey), 0600)
     child = pexpect.spawn("ssh -i" +str(args.pkey)+ " " + str(args.user) +
                               "@" + str(args.hostname) + "")
 
