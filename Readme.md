@@ -20,12 +20,12 @@ arguments:
                         host for ssh. 'user@host...'
   -r [RESOURCE], --resource [RESOURCE]
                         Which resource would you like to execute on 
-(UofA
-                        only, default: ocelote)
+                        (UofA only, default: ocelote)
   -G [GATEKEEPERS], --gatekeepers [GATEKEEPERS]
                         Useful for HPC with gatekeepers, see docs for 
-more
-                        info As an alternative to the commandline, 
+                        more info 
+                        
+As an alternative to the commandline, 
 params can be placed in a file, one per
 line, and specified on the commandline like 'main.py @params.conf'.
 ```
