@@ -8,4 +8,6 @@ RUN apk add --update py-pip
 
 RUN pip install pexpect
 
-ADD main.py ./main.py
+ADD main.py /usr/bin
+RUN chmod +x /usr/bin/main.py
+ENTRYPOINT ["main.py"]
