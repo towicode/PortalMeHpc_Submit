@@ -22,20 +22,28 @@ def submit_uofa(args):
 
     index = child.expect(['Are you sure you want to continue connecting*',
                           pexpect.EOF, pexpect.TIMEOUT], timeout=5)
+    logging.debug(child.before)
     if index == 0:
         child.sendline("yes")
+        time.sleep(1)
 
     child.expect("Shortcut commands to access*")
+    logging.debug(child.before)
+    time.sleep(1)
     child.sendline(args.resource)
     child.expect("from gatekeeper.hpc.arizona.edu*")
+    logging.debug(child.before)
+    time.sleep(3)
     #   Create script file from input file.
     with open(args.script, 'r') as myfile:
         data = myfile.read()
         child.sendline("echo \"" + data + "\" > mysubmit.file")
-        time.sleep(1)
+        time.sleep(3)
 
         # submit file to queue here.
         child.sendline(args.submit + " mysubmit.file")
+    
+    logging.info("Completed")
 
 
 def main(args, loglevel):
