@@ -15,6 +15,10 @@ import os
 
 
 def submit_uofa(args):
+    
+
+    pexpect.spawn("ssh-keyscan hpc.arizona.edu >> ~/.ssh/known_hosts")
+    time.sleep(5)
 
     os.chmod(str(args.pkey), 0600)
     child = pexpect.spawn("ssh -i" +str(args.pkey)+ " " + str(args.user) +
@@ -25,23 +29,49 @@ def submit_uofa(args):
     logging.debug(child.before)
     if index == 0:
         child.sendline("yes")
-        time.sleep(1)
+        time.sleep(5)
 
     child.expect("Shortcut commands to access*")
     logging.debug(child.before)
-    time.sleep(1)
+
+
+
+    child.sendline("touch .portalme")
+    time.sleep(5)
+    child.expect("~]\$")
+    logging.debug(child.before)
+    time.sleep(5)
+
+
+    time.sleep(5)
     child.sendline(args.resource)
     child.expect("from gatekeeper.hpc.arizona.edu*")
     logging.debug(child.before)
-    time.sleep(3)
+
+
+    child.sendline("rm mysubmit.file")
+    time.sleep(5)
+    child.expect("~]\$")
+    logging.debug(child.before)
+    time.sleep(5)
+
+
+
     #   Create script file from input file.
     with open(args.script, 'r') as myfile:
-        data = myfile.read()
-        child.sendline("echo \"" + data + "\" > mysubmit.file")
-        time.sleep(3)
+        for line in myfile:
+            line = line.replace('\r', '').replace('\n', '').replace('$', '\$')
+            logging.debug(line)
+            child.sendline("echo \"" + line + "\" >> mysubmit.file")
+            child.expect("~]\$")
 
         # submit file to queue here.
         child.sendline(args.submit + " mysubmit.file")
+        child.expect("~]\$")
+        logging.debug(child.before)
+
+        child.expect("~]\$")
+        logging.debug(child.before)
     
     logging.info("Completed")
 
