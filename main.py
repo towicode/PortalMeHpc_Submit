@@ -60,7 +60,7 @@ def submit_uofa(args):
     #   Create script file from input file.
     with open(args.script, 'r') as myfile:
         for line in myfile:
-            line = line.replace('\r', '').replace('\n', '').replace('$', '\$')
+            line = line.replace('\r', '').replace('\n', '').replace('\\','\\\\').replace('$', '\$').replace('"', '\\\"')
             logging.debug(line)
             child.sendline("echo \"" + line + "\" >> mysubmit.file")
             child.expect("~]\$")
