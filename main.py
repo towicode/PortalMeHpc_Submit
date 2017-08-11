@@ -1,40 +1,47 @@
 #!/usr/bin/env python
-
-# import modules used here -- sys is a very standard one
 import sys
 import argparse
 import logging
-
 import sys
 import pexpect
 import time
-
 import os
 
 # Gather our code in a main() function
 
 
 def submit_uofa(args):
-    
+    """ Code specifically for submitting to the UOFA 
 
+    Can be used as a template for other modules """
+
+    logging.debug("Loaded UOFA module...")
+    
+    #   add the key to the known host, hopefully allowing the program not to fail.
     pexpect.spawn("ssh-keyscan hpc.arizona.edu >> ~/.ssh/known_hosts")
     time.sleep(5)
 
+
+    #   Modify the permission of the key so that it's private. (incase its not)
     os.chmod(str(args.pkey), 0600)
+
+    logging.debug("Starting SSH Instance... this may take a minute.")
     child = pexpect.spawn("ssh -i" +str(args.pkey)+ " " + str(args.user) +
                               "@" + str(args.hostname) + "")
 
+    #   There is a chance on first time to display this message. we need to handle it.
     index = child.expect(['Are you sure you want to continue connecting*',
                           pexpect.EOF, pexpect.TIMEOUT], timeout=5)
     logging.debug(child.before)
+
+    #   If the index == 0, that means the message was present.
     if index == 0:
         child.sendline("yes")
-        time.sleep(5)
+        time.sleep(2)
 
+    #   Finally we should be at the window where you can access the different HPCS (ocelote, etc)
     child.expect("Shortcut commands to access*")
     logging.debug(child.before)
-
-
 
     child.sendline("touch .portalme")
     time.sleep(5)
@@ -72,15 +79,29 @@ def submit_uofa(args):
 
         child.expect("~]\$")
         logging.debug(child.before)
-    
+        
     logging.info("Completed")
 
 
 def main(args, loglevel):
+    """ Entry point after we gather arguments from the command line 
+
+    We load the function by name, prepended with submit_.
+    Additionally logging is setup here. """
+
     logging.basicConfig(format="%(levelname)s: %(message)s", level=loglevel)
-    submit_uofa(args)
 
+    current_module = sys.modules[__name__]
+    method = getattr(current_module, "submit_"+args.module, default_action)
 
+    logging.debug("Starting...")
+    method(args)
+
+def default_action(args):
+    """ Basic default action if the user provides a module that doesn't exist """
+
+    logging.error("We couldn't find the correct module! Note that submit_ is prepended to your 'def' name")
+    exit(1)
 
 # Standard boilerplate to call the main() function to begin
 # the program.
@@ -123,6 +144,15 @@ if __name__ == '__main__':
         required=True,
         type=str)
 
+    required.add_argument(
+        "-M",
+        "--module",
+        help="The module (or system) you would like to use. Default UOFA HPC",
+        nargs="?",
+        default="uofa",
+        required=True,
+        type=str)
+
     optional = parser.add_argument_group('optional arguments')
 
     optional.add_argument(
@@ -154,15 +184,13 @@ if __name__ == '__main__':
         nargs="?",
         default="ocelote",
         type=str)
-     
+
     optional.add_argument(
-        "-G",
-        "--gatekeepers",
-        help="Useful for HPC with gatekeepers, see docs for more info",
+        "--key",
+        help="Two Factor Key",
         nargs="?",
-        default="",
+        default="ocelote",
         type=str)
-    
 
     args = parser.parse_args()
 
