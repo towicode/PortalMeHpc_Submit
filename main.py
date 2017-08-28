@@ -10,19 +10,42 @@ import os
 # Gather our code in a main() function
 
 
-def submit_uofa(args):
-    """ Code specifically for submitting to the UOFA 
+def submit_jetstream(args):
+    """ Modules for submitting to Jetstream """
 
-    Can be used as a template for other modules """
+    logging.debug("Loaded Jetstream module...")
 
-    logging.debug("Loaded UOFA module...")
+    #   Create connection to jetstream
+    child = create_shell_and_connect_generic(args)
+
+    #   Set expected as part of terminal response. In this case jetstream is 'towicode@f2....:~""
+    expected = args.user+"@"
+
+    #   Wait for prompt to be active
+    child.expect(expected)
+
+    #   Remove old submit file
+    child.sendline("rm mysubmit.file")
+    time.sleep(2)
     
-    #   add the key to the known host, hopefully allowing the program not to fail.
-    pexpect.spawn("ssh-keyscan hpc.arizona.edu >> ~/.ssh/known_hosts")
+    #   Wait for prompt to be active.
+    child.expect(expected)
+    logging.debug(child.before)
+    time.sleep(2)
+
+    #   Create the file and submit!
+    create_and_submit_generic(child, args, expected)
+
+    logging.info("Completed")
+
+def create_shell_and_connect_generic(args):
+    """Creates a shell, makes sure the key is the right permission and then 
+    attempts to connect, rerturns shell instance """
+
+
+    pexpect.spawn("ssh-keyscan "+args.hostname+" >> ~/.ssh/known_hosts")
     time.sleep(5)
 
-
-    #   Modify the permission of the key so that it's private. (incase its not)
     os.chmod(str(args.pkey), 0600)
 
     logging.debug("Starting SSH Instance... this may take a minute.")
@@ -39,46 +62,72 @@ def submit_uofa(args):
         child.sendline("yes")
         time.sleep(2)
 
-    #   Finally we should be at the window where you can access the different HPCS (ocelote, etc)
-    child.expect("Shortcut commands to access*")
-    logging.debug(child.before)
+    return child
 
-    child.sendline("touch .portalme")
-    time.sleep(5)
-    child.expect("~]\$")
-    logging.debug(child.before)
-    time.sleep(5)
+def create_and_submit_generic(child, args, expected):
+    """Creates and submits the file with the the open ssh instance"""
 
-
-    time.sleep(5)
-    child.sendline(args.resource)
-    child.expect("from gatekeeper.hpc.arizona.edu*")
-    logging.debug(child.before)
-
-
-    child.sendline("rm mysubmit.file")
-    time.sleep(5)
-    child.expect("~]\$")
-    logging.debug(child.before)
-    time.sleep(5)
-
-
-
-    #   Create script file from input file.
     with open(args.script, 'r') as myfile:
         for line in myfile:
             line = line.replace('\r', '').replace('\n', '').replace('\\','\\\\').replace('$', '\$').replace('"', '\\\"')
             logging.debug(line)
             child.sendline("echo \"" + line + "\" >> mysubmit.file")
-            child.expect("~]\$")
+            child.expect(expected)
 
         # submit file to queue here.
-        child.sendline(args.submit + " mysubmit.file")
-        child.expect("~]\$")
+        if (args.submit):
+            child.sendline(args.submit + " mysubmit.file")
+        else:
+            child.sendline("chmod +x mysubmit.file")
+            child.sendline("./"+ "mysubmit.file")
+
+        child.expect(expected)
         logging.debug(child.before)
 
-        child.expect("~]\$")
+        child.expect(expected)
         logging.debug(child.before)
+
+
+
+def submit_uofa(args):
+    """ Code specifically for submitting to the UOFA 
+
+    Can be used as a template for other modules """
+
+    logging.debug("Loaded UOFA module...")
+    
+    #   Create instance of shell
+    child = create_shell_and_connect_generic(args)
+
+    #   Finally we should be at the window where you can access the different HPCS (ocelote, etc)
+    child.expect("Shortcut commands to access*")
+    logging.debug(child.before)
+
+    expected = "~]\$"
+
+    #   Create basic ('ive been here') file for testing.
+    child.sendline("touch .portalme")
+    time.sleep(5)
+    child.expect(expected)
+    logging.debug(child.before)
+    time.sleep(5)
+
+
+    #   Attempt to login to resource ('ocelote')
+    time.sleep(5)
+    child.sendline(args.resource)
+    child.expect("from gatekeeper.hpc.arizona.edu*")
+    logging.debug(child.before)
+
+    #   remove all previous files.
+    child.sendline("rm mysubmit.file")
+    time.sleep(5)
+    child.expect(expected)
+    logging.debug(child.before)
+    time.sleep(5)
+
+    #   Create a submit script
+    create_and_submit_generic(child, args, expected)
         
     logging.info("Completed")
 
@@ -136,13 +185,7 @@ if __name__ == '__main__':
         required=True,
         type=str)
 
-    required.add_argument(
-        "-S",
-        "--submit",
-        help="command to submit, ex qsub.",
-        nargs="?",
-        required=True,
-        type=str)
+
 
     required.add_argument(
         "-M",
@@ -190,6 +233,14 @@ if __name__ == '__main__':
         help="Two Factor Key",
         nargs="?",
         default="ocelote",
+        type=str)
+
+    optional.add_argument(
+        "-S",
+        "--submit",
+        help="command to submit, ex qsub. default './' as in executed.",
+        nargs="?",
+        required=False,
         type=str)
 
     args = parser.parse_args()
