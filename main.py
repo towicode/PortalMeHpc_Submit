@@ -116,7 +116,7 @@ def submit_uofa(args):
     #   Attempt to login to resource ('ocelote')
     time.sleep(5)
     child.sendline(args.resource)
-    child.expect("from gatekeeper.hpc.arizona.edu*")
+    child.expect("from keymaster.hpc.arizona.edu*")
     logging.debug(child.before)
 
     #   remove all previous files.
