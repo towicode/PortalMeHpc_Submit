@@ -79,7 +79,7 @@ def create_and_submit_generic(child, args, expected):
             child.sendline(args.submit + " mysubmit.file")
         else:
             child.sendline("chmod +x mysubmit.file")
-            child.sendline("./"+ "mysubmit.file")
+            child.sendline("./"+ "mysubmit.file > somefile 2>&1 &")
 
         child.expect(expected)
         logging.debug(child.before)
