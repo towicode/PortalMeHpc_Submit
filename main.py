@@ -132,6 +132,12 @@ if __name__ == '__main__':
         required=False,
         type=str)
 
+    optional.add_argument(
+        '--files',
+        type=argparse.FileType('r'),
+        nargs='+')
+
+
     args = parser.parse_args()
 
     # Setup logging
@@ -141,3 +147,4 @@ if __name__ == '__main__':
         loglevel = logging.INFO
 
     main(args, loglevel)
+

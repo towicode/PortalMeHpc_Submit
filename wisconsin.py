@@ -29,6 +29,7 @@ def plugin_main(args, **kwargs):
     time.sleep(2)
 
     #   Create the file and submit!
+    g.upload_files(child,args, expected)
     g.create_and_submit_generic(child, args, expected)
 
-    logging.info("Completed")
+    logging.info("Wisconsin Completed")
