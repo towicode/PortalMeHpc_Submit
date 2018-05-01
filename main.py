@@ -6,130 +6,18 @@ import sys
 import pexpect
 import time
 import os
+import generics as g
 
 # Gather our code in a main() function
 
 
-def submit_jetstream(args):
-    """ Modules for submitting to Jetstream """
+def load_plugin(name):
+    mod = __import__("%s" % name)
+    return mod
 
-    logging.debug("Loaded Jetstream module...")
-
-    #   Create connection to jetstream
-    child = create_shell_and_connect_generic(args)
-
-    #   Set expected as part of terminal response. In this case jetstream is 'towicode@f2....:~""
-    expected = args.user+"@"
-
-    #   Wait for prompt to be active
-    child.expect(expected)
-
-    #   Remove old submit file
-    child.sendline("rm mysubmit.file")
-    time.sleep(2)
-    
-    #   Wait for prompt to be active.
-    child.expect(expected)
-    logging.debug(child.before)
-    time.sleep(2)
-
-    #   Create the file and submit!
-    create_and_submit_generic(child, args, expected)
-
-    logging.info("Completed")
-
-def create_shell_and_connect_generic(args):
-    """Creates a shell, makes sure the key is the right permission and then 
-    attempts to connect, rerturns shell instance """
-
-
-    pexpect.spawn("ssh-keyscan "+args.hostname+" >> ~/.ssh/known_hosts")
-    time.sleep(5)
-
-    os.chmod(str(args.pkey), 0600)
-
-    logging.debug("Starting SSH Instance... this may take a minute.")
-    child = pexpect.spawn("ssh -i" +str(args.pkey)+ " " + str(args.user) +
-                              "@" + str(args.hostname) + "")
-
-    #   There is a chance on first time to display this message. we need to handle it.
-    index = child.expect(['Are you sure you want to continue connecting*',
-                          pexpect.EOF, pexpect.TIMEOUT], timeout=5)
-    logging.debug(child.before)
-
-    #   If the index == 0, that means the message was present.
-    if index == 0:
-        child.sendline("yes")
-        time.sleep(2)
-
-    return child
-
-def create_and_submit_generic(child, args, expected):
-    """Creates and submits the file with the the open ssh instance"""
-
-    with open(args.script, 'r') as myfile:
-        for line in myfile:
-            line = line.replace('\r', '').replace('\n', '').replace('\\','\\\\').replace('$', '\$').replace('"', '\\\"')
-            logging.debug(line)
-            child.sendline("echo \"" + line + "\" >> mysubmit.file")
-            child.expect(expected)
-
-        # submit file to queue here.
-        if (args.submit):
-            child.sendline(args.submit + " mysubmit.file")
-        else:
-            child.sendline("chmod +x mysubmit.file")
-            child.sendline("nohup ./mysubmit.file &")
-
-        child.expect(expected)
-        logging.debug(child.before)
-
-        child.expect(expected)
-        logging.debug(child.before)
-
-
-
-def submit_uofa(args):
-    """ Code specifically for submitting to the UOFA 
-
-    Can be used as a template for other modules """
-
-    logging.debug("Loaded UOFA module...")
-    
-    #   Create instance of shell
-    child = create_shell_and_connect_generic(args)
-
-    #   Finally we should be at the window where you can access the different HPCS (ocelote, etc)
-    child.expect("Shortcut commands to access*")
-    logging.debug(child.before)
-
-    expected = "~]\$"
-
-    #   Create basic ('ive been here') file for testing.
-    child.sendline("touch .portalme")
-    time.sleep(5)
-    child.expect(expected)
-    logging.debug(child.before)
-    time.sleep(5)
-
-
-    #   Attempt to login to resource ('ocelote')
-    time.sleep(5)
-    child.sendline(args.resource)
-    child.expect("from keymaster.hpc.arizona.edu*")
-    logging.debug(child.before)
-
-    #   remove all previous files.
-    child.sendline("rm mysubmit.file")
-    time.sleep(5)
-    child.expect(expected)
-    logging.debug(child.before)
-    time.sleep(5)
-
-    #   Create a submit script
-    create_and_submit_generic(child, args, expected)
-        
-    logging.info("Completed")
+def call_plugin(name, *args, **kwargs):
+    plugin = load_plugin(name)
+    plugin.plugin_main(*args, **kwargs)
 
 
 def main(args, loglevel):
@@ -140,11 +28,14 @@ def main(args, loglevel):
 
     logging.basicConfig(format="%(levelname)s: %(message)s", level=loglevel)
 
-    current_module = sys.modules[__name__]
-    method = getattr(current_module, "submit_"+args.module, default_action)
+    #   current_module = sys.modules[__name__]
+    #   method = getattr(current_module, "submit_"+args.module, default_action)
 
     logging.debug("Starting...")
-    method(args)
+    #   method(args)
+
+    call_plugin(args.module, args)
+
 
 def default_action(args):
     """ Basic default action if the user provides a module that doesn't exist """
@@ -184,8 +75,6 @@ if __name__ == '__main__':
         nargs="?",
         required=True,
         type=str)
-
-
 
     required.add_argument(
         "-M",
@@ -243,6 +132,12 @@ if __name__ == '__main__':
         required=False,
         type=str)
 
+    optional.add_argument(
+        '--files',
+        type=argparse.FileType('r'),
+        nargs='+')
+
+
     args = parser.parse_args()
 
     # Setup logging
@@ -252,3 +147,4 @@ if __name__ == '__main__':
         loglevel = logging.INFO
 
     main(args, loglevel)
+
